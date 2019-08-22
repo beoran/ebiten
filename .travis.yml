@@ -28,10 +28,15 @@ install:
   - go get github.com/hajimehoshi/ebiten@$TRAVIS_BRANCH
   - go get github.com/gopherjs/gopherjs
   - go get myitcv.io/cmd/gjbt
+  - go get github.com/agnivade/wasmbrowsertest
   - # gopath-get for the current GopherJS and gjbt.
   - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
   - GO111MODULE=off go get github.com/gopherjs/gopherjs
   - GO111MODULE=off go get github.com/gopherjs/gopherwasm/js
+  - # wasmbrowsertest
+  - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
+  - export PATH=$GOPATH/bin:$PATH
+  - # Chrome
   - mkdir /tmp/google-chrome-bin
   - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
   - export PATH=/tmp/google-chrome-bin:$PATH
@@ -46,6 +51,7 @@ script:
   - cd /tmp/work
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten/...
+  - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
   - gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
   - GOOS=windows GOARCH=amd64 go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
