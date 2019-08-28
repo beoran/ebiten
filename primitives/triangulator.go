@@ -21,7 +21,11 @@ type Poly struct {
    SplitCount uint
    emit PolyEmitTriangle
    UserData interface{}
-   Vertices []uint
+   // Vertices, in pairwise format. 
+   // The first vertex x is Vertices[0], the first vertex x is Vertices[1], 
+   // The second vertex x is Vertices[2], the second vertex y is Vertices[3], 
+   // and so forth.
+   Vertices []float32
    Reflexes []uint
    Ears []uint
 }
@@ -29,7 +33,7 @@ type Poly struct {
 type PolySplit struct {
 	Begin int
 	Size uint
-	point []float32
+	Point Vertex
 	MaxIndex int
 }
 
@@ -45,11 +49,11 @@ type Vertex [2]float32
 //  Returns false if intersection was not fount and none of above
 //  are modified.
  //
-func polyFindClosestIntersection(vertices[]float32, vertex Vertex) (found bool, point Vertex, edge0 int, edge1 int) {
+func polyFindClosestIntersection(vertices[]float32, vertex Vertex) (found bool, point, edge0, edge1 Vertex) {
    var v0, v1 Vertex
    var bestPoint Vertex
-   var bestE0 int = -1;
-   var bestE1 int = -1;
+   var bestE0 Vertex;
+   var bestE1 Vertex;
 
    // Assemble line pointing to the right. //
    v0    = vertex
@@ -60,12 +64,12 @@ func polyFindClosestIntersection(vertices[]float32, vertex Vertex) (found bool, 
    bestT := float32(math.MaxFloat32);
    for i := 0 ; i < len(vertices) ; i+=2  {
 
-      var p0 Vertex = Vertex{vertices[i-1], vertices[i]};
+      p0 := Vertex{vertices[i], vertices[i+i]};
       j :=  i + 2
       if j > len(vertices) { 
 			j = 0
 	  }
-      var p1 Vertex = Vertex{vertices[j], vertices[j+1]};
+      p1 := Vertex{vertices[j], vertices[j+1]};
 
       // Perform quick rejection.
       //
@@ -87,8 +91,8 @@ func polyFindClosestIntersection(vertices[]float32, vertex Vertex) (found bool, 
          bestT        = t[0];
          bestPoint[0] = intersection[0];
          bestPoint[1] = intersection[1];
-         bestE0       = i;
-         bestE1       = j;
+         bestE0       = p0;
+         bestE1       = p1;
       }
    }
 
@@ -102,54 +106,41 @@ func polyFindClosestIntersection(vertices[]float32, vertex Vertex) (found bool, 
 }
 
 
-/*
 //
 //  Seek for the best vertex in polygon for doing split.
 //
 //  Returns vertex after which split (hole) vertices
 //  can be inserted.
- //
-static _AL_LIST_ITEM* poly_find_outter_split_vertex(POLY* polygon, POLY_SPLIT* split)
-{
-   float intersection[2];
-   _AL_LIST_ITEM* edge_vertex_0;
-   _AL_LIST_ITEM* edge_vertex_1;
-   _AL_LIST_ITEM* vertex;
-   _AL_LIST_ITEM* reflex_item;
-   _AL_LIST_ITEM* best_vertex;
-   float  best_distance;
-   float* p0;
-   float* p1;
-   float* p;
-
-   if (!poly_find_closest_intersection(polygon->vertex_list, split->point, intersection, &edge_vertex_0, &edge_vertex_1))
-      return NULL;
-
-   p0 = (float*)_al_list_item_data(edge_vertex_0);
-   p1 = (float*)_al_list_item_data(edge_vertex_1);
-
-   // Maybe we hit an edge vertex? //
-   if (_al_prim_are_points_equal(split->point, p0))
-      return edge_vertex_0;
-
-   if (_al_prim_are_points_equal(split->point, p1))
-      return edge_vertex_1;
-
-   // No luck. Pick point which most far away from us. //
-   if (p0[0] > p1[0]) {
-
-      vertex = edge_vertex_0;
-      p      = p0;
-   }
-   else {
-
-      vertex = edge_vertex_1;
-      p      = p1;
-   }
-
-   // Seek in reflex vertices. //
-   best_vertex = NULL;
-   best_distance = FLT_MAX;
+//
+func polyFindOuterSplitVertex(polygon Poly, split PolySplit) (bool, Vertex) {
+    var p Vertex
+	found, intersection, edge0, edge1 := polyFindClosestIntersection(polygon.Vertices, split.Point)
+	if !found { 
+		return false, intersection
+	}
+	
+	// Maybe we hit an edge vertex? 
+	if split.Point.Equal(edge0) {
+		return true, edge0
+	}
+		
+	if split.Point.Equal(edge1) {
+		return true, edge1
+	}
+	
+	// No luck. Pick point which most far away from us. 
+	if (edge0[0] > edge1[0]) {
+		p = edge0;
+	} else {
+		p = edge1;	
+    }
+	
+	// Seek in reflex vertices.
+	var bestVertex Vertex
+	bestDistance := float32(math.MaxFloat32)
+	
+	for i:= 0; i < len(polygon.Reflexes) ; i+=2 { 
+		reflex := Vertex{polygon.Reflexes[i]
 
    for (reflex_item = _al_list_front(polygon->reflex_list); reflex_item; reflex_item = _al_list_next(polygon->reflex_list, reflex_item)) {
 

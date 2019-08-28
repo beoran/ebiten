@@ -3,6 +3,7 @@ module github.com/hajimehoshi/ebiten
 go 1.12
 
 require (
+	github.com/chewxy/math32 v1.0.0
 	github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1
 	github.com/gofrs/flock v0.7.1
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
